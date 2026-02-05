@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>定期便在庫マネージャー</title>
+    <title>Amazon定期便同期くん</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, collection, getDoc, setDoc, writeBatch, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, collection, getDoc, setDoc, writeBatch, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // --- 【重要】Firebaseコンソールから取得した設定をここに貼り付けてください ---
         const firebaseConfig = {
@@ -21,59 +21,88 @@
         const db = getFirestore(app);
         const itemsRef = collection(db, "stock_list");
 
-        // 整理いただいた最新44アイテム
         const masterList = [
-            "キッチン泡ハイター 詰替 1L", "フィニッシュ 食洗機洗剤3袋", "キュキュット 泡スプレー 詰替", "CLEAR スカルプシャンプー 詰替",
-            "ビオレu 泡ハンドソープ", "ダヴメン 泡洗顔", "LUX トリートメント 詰替", "LUX シャンプー 詰替", "柿渋ボディソープ 1400ml",
-            "メンズビオレ 泡洗顔", "さらさ 洗濯洗剤 1900g", "エマールおしゃれ着洗剤 詰替", "さらさ 柔軟剤 詰替×2袋",
-            "カビキラー 洗濯槽クリーナー×3", "ワイドハイター EXパワー 2400ml", "トイレクイックル 詰替 6個", "スクラビングバブル　トイレブラシ",
-            "オールフリー 24本", "UCC ゴールドスペシャル 粉", "ジョージア ブラック 950ml×12", "キリン 天然水 2L×9本",
-            "アイリス 天然水 500ml×24本", "アイリス 強炭酸水 500ml×24本", "マルサン 豆乳 低糖 1L×6本", "キリン ワンデイ ブラック 24本",
-            "ギーイージー ギー 200g", "鶏がらスープ 500g", "スパゲッティ 5kg", "ハウス プライムカレー 4種セット", "シーチキン マイルド 12缶",
-            "ブラックペッパー ホール 380g", "ケンミン 即席焼ビーフン 10個", "永谷園 わかめスープ 100袋", "くらこん 塩こんぶ 500g",
-            "ザバス ミルクプロテイン 24本", "ザバス リッチショコラ 1kg", "REYS EAA 600g", "REYS プロテイン チョコ 1kg",
-            "REYS プロテイン ヨーグルト", "クッキングシート(2本)", "ネピア ポケットティシュ", "ビオスリーHi錠 570錠",
-            "プレミアムマスク 小さめ 200枚", "単3電池 48本"
+            { n: "キッチン泡ハイター 詰替 1L", isSub: true }, { n: "フィニッシュ 食洗機洗剤3袋", isSub: true },
+            { n: "キュキュット 泡スプレー 詰替", isSub: true }, { n: "CLEAR スカルプシャンプー 詰替", isSub: true },
+            { n: "ビオレu 泡ハンドソープ", isSub: true }, { n: "ダヴメン 泡洗顔", isSub: true },
+            { n: "LUX トリートメント 詰替", isSub: true }, { n: "LUX シャンプー 詰替", isSub: true },
+            { n: "柿渋ボディソープ 1400ml", isSub: true }, { n: "メンズビオレ 泡洗顔", isSub: true },
+            { n: "さらさ 洗濯洗剤 1900g", isSub: true }, { n: "エマールおしゃれ着洗剤 詰替", isSub: true },
+            { n: "さらさ 柔軟剤 詰替×2袋", isSub: true }, { n: "カビキラー 洗濯槽クリーナー×3", isSub: true },
+            { n: "ワイドハイター EXパワー 2400ml", isSub: true }, { n: "トイレクイックル 詰替 6個", isSub: true },
+            { n: "スクラビングバブル　トイレブラシ", isSub: true }, { n: "オールフリー 24本", isSub: false },
+            { n: "UCC ゴールドスペシャル 粉", isSub: false }, { n: "ジョージア ブラック 950ml×12", isSub: false },
+            { n: "キリン 天然水 2L×9本", isSub: false }, { n: "アイリス 天然水 500ml×24本", isSub: false },
+            { n: "アイリス 強炭酸水 500ml×24本", isSub: false }, { n: "マルサン 豆乳 低糖 1L×6本", isSub: false },
+            { n: "キリン ワンデイ ブラック 24本", isSub: false }, { n: "ギーイージー ギー 200g", isSub: false },
+            { n: "鶏がらスープ 500g", isSub: false }, { n: "スパゲッティ 5kg", isSub: false },
+            { n: "ハウス プライムカレー 4種セット", isSub: false }, { n: "シーチキン マイルド 12缶", isSub: false },
+            { n: "ブラックペッパー ホール 380g", isSub: false }, { n: "ケンミン 即席焼ビーフン 10個", isSub: false },
+            { n: "永谷園 わかめスープ 100袋", isSub: false }, { n: "くらこん 塩こんぶ 500g", isSub: false },
+            { n: "ザバス ミルクプロテイン 24本", isSub: false }, { n: "ザバス リッチショコラ 1kg", isSub: false },
+            { n: "REYS EAA 600g", isSub: false }, { n: "REYS プロテイン チョコ 1kg", isSub: false },
+            { n: "REYS プロテイン ヨーグルト", isSub: false }, { n: "クッキングシート(2本)", isSub: false },
+            { n: "ネピア ポケットティシュ", isSub: true }, { n: "ビオスリーHi錠 570錠", isSub: false },
+            { n: "プレミアムマスク 小さめ 200枚", isSub: true }, { n: "単3電池 48本", isSub: true }
         ];
 
-        // 1. 月初の自動リセット機能
-        async function checkAndReset() {
+        async function checkAndShiftMonth() {
             const now = new Date();
             const monthTag = `${now.getFullYear()}-${now.getMonth() + 1}`;
             const sysRef = doc(db, "system", "config");
             const sysSnap = await getDoc(sysRef);
+            const querySnap = await getDocs(itemsRef);
+            const batch = writeBatch(db);
 
-            if (!sysSnap.exists() || sysSnap.data().lastReset !== monthTag) {
-                const batch = writeBatch(db);
-                for (let i = 0; i < masterList.length; i++) {
+            // 区分(isSub)の強制更新と月またぎ処理
+            let needsReset = !sysSnap.exists() || sysSnap.data().lastCheck !== monthTag;
+
+            if (querySnap.empty) {
+                masterList.forEach((item, i) => {
                     const id = `item_${String(i + 1).padStart(2, '0')}`;
-                    batch.set(doc(db, "stock_list", id), {
-                        name: masterList[i],
-                        status: 0,
-                        note: "",
-                        order: i
-                    }, { merge: true });
-                }
-                batch.set(sysRef, { lastReset: monthTag });
-                await batch.commit();
+                    batch.set(doc(db, "stock_list", id), { name: item.n, status: 0, note: "", order: i, isSub: item.isSub });
+                });
+            } else {
+                querySnap.forEach((d) => {
+                    const data = d.data();
+                    const masterInfo = masterList[data.order];
+                    const updateData = {};
+                    
+                    // 1. 区分情報を最新にする
+                    if (masterInfo) updateData.isSub = masterInfo.isSub;
+                    
+                    // 2. 月またぎ処理
+                    if (needsReset) {
+                        const currentStatus = data.status || 0;
+                        updateData.status = currentStatus > 0 ? currentStatus - 1 : 0;
+                    }
+                    
+                    if (Object.keys(updateData).length > 0) batch.update(d.ref, updateData);
+                });
             }
+            batch.set(sysRef, { lastCheck: monthTag }, { merge: true });
+            await batch.commit();
         }
 
-        // 2. 画面への表示
         function render(items) {
             const listEl = document.getElementById('list');
             listEl.innerHTML = '';
             items.forEach(item => {
                 const isNow = item.status == 0;
                 const card = document.createElement('div');
-                card.className = `p-4 mb-3 rounded-2xl border-2 transition-all ${isNow ? 'bg-orange-50 border-orange-400 ring-2 ring-orange-100' : 'bg-white border-gray-100 opacity-60'}`;
+                
+                // デザイン：isSubなら青い太線を左側に、isNowなら全体をオレンジ枠に
+                const subBorder = item.isSub ? 'border-l-[10px] border-l-blue-400' : 'border-l-2';
+                const nowBg = isNow ? 'bg-orange-50 border-orange-400 ring-2 ring-orange-100' : 'bg-white border-gray-100 opacity-70';
+                
+                card.className = `p-4 mb-4 rounded-2xl border-2 transition-all ${subBorder} ${nowBg}`;
                 card.innerHTML = `
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="font-black text-gray-800">${item.name}</span>
+                    <div class="flex justify-between items-center mb-3 pl-1">
+                        <span class="font-black ${isNow ? 'text-gray-900 text-lg' : 'text-gray-400 text-base'}">${item.name}</span>
                         ${isNow ? '<span class="text-[10px] bg-orange-600 text-white px-2 py-1 rounded-md font-bold shadow-sm">今回発注</span>' : ''}
                     </div>
                     <div class="grid grid-cols-4 gap-2 mb-3">
-                        ${['今回', '翌月', '2月後', '3月後'].map((label, i) => `
+                        ${['今回', '翌月へ', '2月後', '3月後'].map((label, i) => `
                             <button onclick="updateStatus('${item.id}', ${i})" class="py-2 text-[10px] font-bold rounded-lg border transition-all ${item.status == i ? 'bg-orange-600 text-white border-orange-700 shadow-inner' : 'bg-white text-gray-400 border-gray-100'}">${label}</button>
                         `).join('')}
                     </div>
@@ -87,8 +116,8 @@
         window.updateStatus = (id, s) => updateDoc(doc(db, "stock_list", id), { status: s });
         window.updateNote = (id, n) => updateDoc(doc(db, "stock_list", id), { note: n });
 
-        window.onload = () => {
-            checkAndReset();
+        window.onload = async () => {
+            await checkAndShiftMonth();
             onSnapshot(query(itemsRef, orderBy("order")), (snap) => {
                 const data = [];
                 snap.forEach(d => data.push({ id: d.id, ...d.data() }));
@@ -97,26 +126,18 @@
         };
     </script>
     <style>
-        body { -webkit-tap-highlight-color: transparent; }
-        .sticky-header { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); }
+        body { -webkit-tap-highlight-color: transparent; background-color: #f8fafc; font-family: sans-serif; }
+        .sticky-header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
-
+<body>
     <header class="sticky-header sticky top-0 z-50 p-4 border-b flex justify-between items-center shadow-sm">
-        <h1 class="font-black text-lg text-gray-800 tracking-tighter text-orange-600">Amazon定期便 同期ツール</h1>
-        <div class="bg-gray-100 px-3 py-1 rounded-full text-[9px] font-bold text-gray-500">毎月1日リセット</div>
-    </header>
-
-    <main id="list" class="p-4 max-w-md mx-auto pb-20">
-        <!-- ここに44件のリストが表示されます -->
-    </main>
-
-    <div class="fixed bottom-4 right-4 left-4 max-w-md mx-auto pointer-events-none">
-        <div class="bg-gray-900/80 text-white text-[10px] p-3 rounded-2xl text-center shadow-2xl backdrop-blur-sm">
-            在庫を確認して、配送を遅らせるものを選んでください
+        <h1 class="font-black text-orange-600 tracking-tighter">定期便在庫管理</h1>
+        <div class="flex items-center gap-2">
+            <div class="w-2 h-4 bg-blue-400 rounded-sm"></div>
+            <span class="text-[10px] font-bold text-blue-600">青：洗剤系</span>
         </div>
-    </div>
-
+    </header>
+    <main id="list" class="p-4 max-w-md mx-auto pb-20"></main>
 </body>
 </html>
