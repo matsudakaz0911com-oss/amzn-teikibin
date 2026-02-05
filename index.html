@@ -3,7 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Amazon定期便同期くん</title>
+    <title>定期便在庫管理</title>
+    
+    <!-- --- iPhone用アイコン・アプリ設定 --- -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="定期便在庫">
+    <!-- 段ボール箱（📦）のアイコンを設定 -->
+    <link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/notionists/svg?seed=box&backgroundColor=f97316">
+    <!-- ---------------------------------- -->
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -54,7 +63,6 @@
             const querySnap = await getDocs(itemsRef);
             const batch = writeBatch(db);
 
-            // 区分(isSub)の強制更新と月またぎ処理
             let needsReset = !sysSnap.exists() || sysSnap.data().lastCheck !== monthTag;
 
             if (querySnap.empty) {
@@ -67,16 +75,11 @@
                     const data = d.data();
                     const masterInfo = masterList[data.order];
                     const updateData = {};
-                    
-                    // 1. 区分情報を最新にする
                     if (masterInfo) updateData.isSub = masterInfo.isSub;
-                    
-                    // 2. 月またぎ処理
                     if (needsReset) {
                         const currentStatus = data.status || 0;
                         updateData.status = currentStatus > 0 ? currentStatus - 1 : 0;
                     }
-                    
                     if (Object.keys(updateData).length > 0) batch.update(d.ref, updateData);
                 });
             }
@@ -90,8 +93,6 @@
             items.forEach(item => {
                 const isNow = item.status == 0;
                 const card = document.createElement('div');
-                
-                // デザイン：isSubなら青い太線を左側に、isNowなら全体をオレンジ枠に
                 const subBorder = item.isSub ? 'border-l-[10px] border-l-blue-400' : 'border-l-2';
                 const nowBg = isNow ? 'bg-orange-50 border-orange-400 ring-2 ring-orange-100' : 'bg-white border-gray-100 opacity-70';
                 
@@ -102,11 +103,11 @@
                         ${isNow ? '<span class="text-[10px] bg-orange-600 text-white px-2 py-1 rounded-md font-bold shadow-sm">今回発注</span>' : ''}
                     </div>
                     <div class="grid grid-cols-4 gap-2 mb-3">
-                        ${['今回', '翌月へ', '2月後', '3月後'].map((label, i) => `
+                        ${['今回', '翌月', '2月後', '3月後'].map((label, i) => `
                             <button onclick="updateStatus('${item.id}', ${i})" class="py-2 text-[10px] font-bold rounded-lg border transition-all ${item.status == i ? 'bg-orange-600 text-white border-orange-700 shadow-inner' : 'bg-white text-gray-400 border-gray-100'}">${label}</button>
                         `).join('')}
                     </div>
-                    <input type="text" placeholder="メモ（個数など）" value="${item.note || ''}" onchange="updateNote('${item.id}', this.value)"
+                    <input type="text" placeholder="メモ" value="${item.note || ''}" onchange="updateNote('${item.id}', this.value)"
                         class="w-full text-xs p-3 rounded-xl bg-white border border-gray-200 outline-none focus:ring-2 focus:ring-orange-300">
                 `;
                 listEl.appendChild(card);
@@ -128,13 +129,14 @@
     <style>
         body { -webkit-tap-highlight-color: transparent; background-color: #f8fafc; font-family: sans-serif; }
         .sticky-header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); }
+        body { padding-top: env(safe-area-inset-top); }
     </style>
 </head>
 <body>
     <header class="sticky-header sticky top-0 z-50 p-4 border-b flex justify-between items-center shadow-sm">
         <h1 class="font-black text-orange-600 tracking-tighter">定期便在庫管理</h1>
         <div class="flex items-center gap-2">
-            <div class="w-2 h-4 bg-blue-400 rounded-sm"></div>
+            <div class="w-2 h-4 bg-blue-400 rounded-sm shadow-sm"></div>
             <span class="text-[10px] font-bold text-blue-600">青：洗剤系</span>
         </div>
     </header>
