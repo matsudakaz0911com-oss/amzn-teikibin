@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- ブラウザのタブに表示されるタイトル -->
     <title>📦アマゾン定期便発注アイテム確認</title>
     
     <!-- --- iPhone用アイコン・アプリ設定 --- -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="アマゾン定期便発注アイテム確認">
-    <!-- 段ボール箱（📦）のアイコンを設定 -->
+    <!-- ホーム画面に追加した時のアイコン下の名前 -->
+    <meta name="apple-mobile-web-app-title" content="アマゾン定期便">
     <link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/notionists/svg?seed=box&backgroundColor=f97316">
     <!-- ---------------------------------- -->
 
@@ -103,7 +104,7 @@
                         ${isNow ? '<span class="text-[10px] bg-orange-600 text-white px-2 py-1 rounded-md font-bold shadow-sm">今回発注</span>' : ''}
                     </div>
                     <div class="grid grid-cols-4 gap-2 mb-3">
-                        ${['今回', '翌月', '2月後', '3月後'].map((label, i) => `
+                        ${['今回', '翌月へ', '2月後', '3月後'].map((label, i) => `
                             <button onclick="updateStatus('${item.id}', ${i})" class="py-2 text-[10px] font-bold rounded-lg border transition-all ${item.status == i ? 'bg-orange-600 text-white border-orange-700 shadow-inner' : 'bg-white text-gray-400 border-gray-100'}">${label}</button>
                         `).join('')}
                     </div>
@@ -133,15 +134,13 @@
     </style>
 </head>
 <body>
-    <header class="sticky-header sticky top-0 z-50 p-4 border-b flex justify-between items-center shadow-sm">
-        <h1 class="font-black text-orange-600 tracking-tighter">定期便在庫管理</h1>
+    <header class="sticky-header sticky top-0 z-50 p-4 border-b flex flex-col items-center shadow-sm">
+        <h1 class="font-black text-orange-600 tracking-tighter text-sm mb-1">📦アマゾン定期便発注アイテム確認</h1>
         <div class="flex items-center gap-2">
-            <div class="w-2 h-4 bg-blue-400 rounded-sm shadow-sm"></div>
-            <span class="text-[10px] font-bold text-blue-600">青：洗剤系</span>
+            <div class="w-2 h-3 bg-blue-400 rounded-sm shadow-sm"></div>
+            <span class="text-[9px] font-bold text-blue-600">青：洗剤・日用品系</span>
         </div>
     </header>
     <main id="list" class="p-4 max-w-md mx-auto pb-20"></main>
 </body>
 </html>
-
-
